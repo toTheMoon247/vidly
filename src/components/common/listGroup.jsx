@@ -11,7 +11,7 @@ const ListGroup = props => {
         <li
           onClick={() => onItemSelect(item)}
           key={item[valueProperty]}
-          className={item === selectedItem ? "cursor-pointer list-group-item active" : "cursor-pointer list-group-item"}
+          className={item === selectedItem ? "clickable list-group-item active" : "clickable list-group-item"}
         >
           {item[textProperty]}
         </li>
