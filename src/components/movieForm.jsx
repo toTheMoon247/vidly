@@ -1,8 +1,8 @@
 import React from 'react';
 import Joi from 'joi-browser';
 import Form from './common/form';
-import { getMovie, saveMovie } from "../services/fakeMovieService";
-import { getGenres } from "../services/fakeGenreService";
+import { getMovie, saveMovie } from "../services/movieService";
+import { getGenres } from "../services/genreService";
 
 class MovieForm extends Form {
 
@@ -20,28 +20,34 @@ class MovieForm extends Form {
     dailyRentalRate: Joi.number().required().min(0).max(100).label("Daily rental rate"),
   };
 
+  async populateGenre() {
+    const { data: genres } = await getGenres();
+    this.setState({ genres });
+  }
+
+  // We will fetch the movie data and convert it to a model view
+  // The RESTful API that we get from the server is for general purposes
+  // It's not built for specific page. Now it's time to convert it to our
+  // needs. We will do it with calling to mapToViewModel
+  async populateMovie() {
+    try {
+      const movieId = this.props.match.params.id;
+      if (movieId === 'new')
+        return;
+
+      const { data: movie } = await getMovie(movieId);
+      this.setState({ data: this.mapToViewModel(movie) });
+    } catch (ex) {
+      if (ex.response && ex.response.status === 404)
+        return this.props.history.replace('/not-found');
+    }
+  }
+
   // Populate the form with details of the movie.
   // If the movie is a new movie we will just return, nothing to populate
-
-  componentDidMount() {
-    const genres = getGenres();
-    this.setState({ genres });
-
-    const movieId = this.props.match.params.id;
-    if (movieId === 'new')
-      return;
-
-    console.log(movieId);
-    const movie = getMovie(movieId);
-
-    if (!movie)
-      return this.props.history.replace('/not-found');
-
-    // We will fetch the movie data and convert it to a model view
-    // The RESTful API that we get from the server is for general purposes
-    // It's not built for specific page. Now it's time to convert it to our
-    // needs. We will do it with calling to mapToViewModel
-    this.setState({ data: this.mapToViewModel(movie) });
+  async componentDidMount() {
+    await this.populateGenre();
+    await this.populateMovie();
   }
 
   mapToViewModel(movie) {
@@ -56,9 +62,9 @@ class MovieForm extends Form {
   }
 
   // When the form is submitted we will cal  this method
-  doSubmit = () => {
+  doSubmit = async () => {
     // Call the server, in our case fakeMovieService
-    saveMovie(this.state.data);
+    await saveMovie(this.state.data);
     this.props.history.push("/movies");
   }
 

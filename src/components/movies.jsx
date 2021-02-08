@@ -1,7 +1,7 @@
 import React, {Component} from "react";
 import { Link } from 'react-router-dom';
-import { getMovies } from "../services/fakeMovieService";
-import { getGenres } from "../services/fakeGenreService";
+import { getMovies, deleteMovie } from "../services/movieService";
+import { getGenres } from "../services/genreService";
 import Pagination from "./common/pagination";
 import ListGroup from "./common/listGroup"
 import MoviesTable from "./moviesTable"
@@ -24,9 +24,20 @@ class Movies extends Component {
     sortColumn: { path: 'title', order: 'asc'}
   };
 
-  handleDelete = (movie) => {
-    const movies = this.state.movies.filter(m => m._id !== movie._id);
+  handleDelete = async movie => {
+    const originalMovies =  this.state.movies;
+    const movies = originalMovies.filter(m => m._id !== movie._id);
     this.setState({movies: movies});
+
+    try {
+      await deleteMovie(movie._id);
+    } catch (ex) {
+      console.log(ex);
+      if (ex.response && ex.response.status === 404)
+         console.log('This movie has already been deleted');
+
+      this.setState( {movies: originalMovies} )
+    }
   };
 
   handleLike = (movie) => {
@@ -38,9 +49,12 @@ class Movies extends Component {
   }
 
   // Create a backend calls
-  componentDidMount() {
-    const genres = [ {_id: '', name: 'All genres'}, ...getGenres() ];
-    this.setState({ movies: getMovies(), genres: genres });
+  async componentDidMount() {
+    const { data } =  await getGenres();
+    const genres = [ {_id: '', name: 'All genres'}, ...data ];
+
+    const { data: movies } = await getMovies();
+    this.setState({ movies, genres: genres });
   }
 
   handlePageChange = page => {
